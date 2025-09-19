@@ -126,6 +126,17 @@ app.get("/api/payments", async (req, res) => {
   }
 });
 
+// admin login route
+app.post("/api/admin/login", (req, res) => {
+  const { password } = req.body;
+
+  if (password === process.env.ADMIN_PASSWORD) {
+    return res.json({ success: true });
+  } else {
+    return res.status(401).json({ error: "Invalid password" });
+  }
+});
+
 // 🔹 Update payment status manually
 app.put("/api/payments/:id", async (req, res) => {
   try {

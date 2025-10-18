@@ -110,17 +110,31 @@ app.put("/api/users/:uid/storage", async (req, res) => {
 ============================ */
 
 // 🔹 Create payment intent
+// 🔹 Create payment intent and update user storage
+// 🔹 Create payment and update user storage
 app.post("/api/payments", async (req, res) => {
-  const { userId, gb, totalPrice, upiLink } = req.body;
+  const { userId, name, email, gb, totalPrice, upiLink } = req.body;
 
-  if (!userId || !gb || !totalPrice || !upiLink) {
+  if (!userId || !name || !email || !gb || !totalPrice || !upiLink) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
+    // 1️⃣ Create payment document
     const payment = new Payment({ userId, gb, totalPrice, upiLink });
     await payment.save();
-    res.status(201).json(payment);
+
+    // 2️⃣ Update or create user
+    let user = await User.findOne({ uid: userId });
+    if (!user) {
+      user = new User({ uid: userId, name, email, storageGB: gb });
+      await user.save();
+    } else {
+      user.storageGB += gb;
+      await user.save();
+    }
+
+    res.status(201).json({ payment, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

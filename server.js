@@ -5,8 +5,36 @@ import dotenv from "dotenv";
 
 dotenv.config();
 const app = express();
+
+const defaultAllowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
+const envAllowedOrigins = (process.env.FRONTEND_URLS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...envAllowedOrigins])];
+
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser requests and explicit allowed web origins.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS blocked for this origin"));
+    },
+  })
+);
+
+if (!process.env.MONGO_URI) {
+  console.error("Missing MONGO_URI in environment variables.");
+  process.exit(1);
+}
 
 // ✅ MongoDB Connection
 mongoose
@@ -182,6 +210,10 @@ app.put("/api/payments/:id", async (req, res) => {
 ============================ */
 app.get("/", (req, res) => {
   res.send("🚀 API is running...");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
 /* ============================
